@@ -199,24 +199,23 @@ class ClockViewModel : ViewModel() {
         _state.update { it.copy(seconds = second.coerceIn(0, 59), isLiveClockRunning = false) }
     }
 
-    fun setHourFromOneBasedDial(value: Int) {
-        val hour = if (value == 24) 0 else value.coerceIn(1, 23)
-        _state.update { it.copy(hours = hour, isLiveClockRunning = false) }
+    fun setHourFromDial(value: Int) {
+        _state.update { it.copy(hours = value.coerceIn(0, 23), isLiveClockRunning = false) }
     }
 
-    fun setMinuteFromOneBasedDial(value: Int) {
+    fun setMinuteFromDial(value: Int) {
         _state.update {
             it.copy(
-                minutes = (value.coerceIn(1, 60) - 1).coerceIn(0, 59),
+                minutes = value.coerceIn(0, 59),
                 isLiveClockRunning = false,
             )
         }
     }
 
-    fun setSecondFromOneBasedDial(value: Int) {
+    fun setSecondFromDial(value: Int) {
         _state.update {
             it.copy(
-                seconds = (value.coerceIn(1, 60) - 1).coerceIn(0, 59),
+                seconds = value.coerceIn(0, 59),
                 isLiveClockRunning = false,
             )
         }

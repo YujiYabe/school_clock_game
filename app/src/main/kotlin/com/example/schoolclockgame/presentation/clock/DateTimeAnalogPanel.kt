@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -90,37 +89,37 @@ fun DateTimeAnalogPanel(
             onStep = onDayMove,
             modifier = Modifier.weight(1f),
         )
-        val hourDialValue = if (state.hours == 0) 24 else state.hours
         UnitDial(
-            currentValue = hourDialValue,
+            currentValue = state.hours,
             count = 24,
             centerText = "%02dじ".format(state.hours),
             color = Color(0xFF246BFD),
-            onValueChange = { target -> moveDialValue(hourDialValue, 24, target, onHourMove) },
+            onValueChange = onHourSelected,
             onStep = onHourMove,
             modifier = Modifier.weight(1f),
+            valueOffset = 0,
         )
-        val minuteDialValue = state.minutes + 1
         UnitDial(
-            currentValue = minuteDialValue,
+            currentValue = state.minutes,
             count = 60,
             centerText = "%02dふん".format(state.minutes),
             color = Color(0xFF7C3AED),
-            onValueChange = { target -> moveDialValue(minuteDialValue, 60, target, onMinuteMove) },
+            onValueChange = onMinuteSelected,
             onStep = onMinuteMove,
             modifier = Modifier.weight(1f),
             labelStep = 10,
+            valueOffset = 0,
         )
-        val secondDialValue = state.seconds + 1
         UnitDial(
-            currentValue = secondDialValue,
+            currentValue = state.seconds,
             count = 60,
             centerText = "%02dびょう".format(state.seconds),
             color = Color(0xFFEF4444),
-            onValueChange = { target -> moveDialValue(secondDialValue, 60, target, onSecondMove) },
+            onValueChange = onSecondSelected,
             onStep = onSecondMove,
             modifier = Modifier.weight(1f),
             labelStep = 10,
+            valueOffset = 0,
         )
     }
 }
@@ -164,7 +163,7 @@ private fun YearAnalogPanel(
             verticalArrangement = Arrangement.SpaceEvenly,
         ) {
             AnalogStepButton(text = "▲", onClick = { onYearMove(1) })
-            (-3..3).forEach { offset ->
+            (-2..2).forEach { offset ->
                 YearSelectorText(
                     year = year + offset,
                     selected = offset == 0,
@@ -199,6 +198,7 @@ private fun UnitDial(
     onStep: (Int) -> Unit,
     modifier: Modifier = Modifier,
     labelStep: Int = 1,
+    valueOffset: Int = 1,
 ) {
     Surface(
         modifier = modifier.fillMaxHeight(),
@@ -225,10 +225,26 @@ private fun UnitDial(
                         .pointerInput(count) {
                             detectDragGestures(
                                 onDragStart = { offset ->
-                                    onValueChange(pointToOneBasedValue(offset, size.width.toFloat(), size.height.toFloat(), count))
+                                    onValueChange(
+                                        pointToDialValue(
+                                            offset,
+                                            size.width.toFloat(),
+                                            size.height.toFloat(),
+                                            count,
+                                            valueOffset,
+                                        ),
+                                    )
                                 },
                                 onDrag = { change, _ ->
-                                    onValueChange(pointToOneBasedValue(change.position, size.width.toFloat(), size.height.toFloat(), count))
+                                    onValueChange(
+                                        pointToDialValue(
+                                            change.position,
+                                            size.width.toFloat(),
+                                            size.height.toFloat(),
+                                            count,
+                                            valueOffset,
+                                        ),
+                                    )
                                     change.consume()
                                 },
                             )
@@ -236,7 +252,7 @@ private fun UnitDial(
                 ) {
                     val radius = min(size.width, size.height) * 0.43f
                     val center = Offset(size.width / 2f, size.height / 2f)
-                    val selected = currentValue.coerceIn(1, count)
+                    val selected = currentValue.coerceIn(valueOffset, valueOffset + count - 1)
                     val sweep = selected.toFloat() / count.toFloat() * 360f
 
                     drawCircle(Color(0xFFF7F8FB), radius, center)
@@ -251,7 +267,7 @@ private fun UnitDial(
                     drawCircle(Color(0xFF2F3645), radius, center, style = Stroke(width = radius * 0.025f))
 
                     repeat(count) { index ->
-                        val value = index + 1
+                        val value = valueOffset + index
                         val isLabeled = shouldShowDialLabel(value, count, labelStep)
                         val angle = valueToClockFaceAngle(value, count)
                         val startRadius = if (isLabeled) radius * 0.84f else radius * 0.91f
@@ -280,6 +296,7 @@ private fun UnitDial(
                         count = count,
                         labelStep = labelStep,
                         selected = selected,
+                        valueOffset = valueOffset,
                     )
                 }
 
@@ -300,14 +317,11 @@ private fun AnalogStepButton(
     text: String,
     onClick: () -> Unit,
 ) {
-    IconButton(onClick = onClick) {
-        Text(
-            text = text,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Black,
-            color = Color(0xFF246BFD),
-        )
-    }
+    RepeatingTextButton(
+        text = text,
+        onPress = onClick,
+        fontSize = 22.sp,
+    )
 }
 
 @Composable
@@ -367,6 +381,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawLabels(
     count: Int,
     labelStep: Int,
     selected: Int,
+    valueOffset: Int,
 ) {
     val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.rgb(31, 36, 48)
@@ -379,7 +394,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawLabels(
         textSize = paint.textSize * 1.16f
     }
     repeat(count) { index ->
-        val value = index + 1
+        val value = valueOffset + index
         if (shouldShowDialLabel(value, count, labelStep) || value == selected) {
             val point = pointOnCircle(center, radius * 0.72f, valueToClockFaceAngle(value, count))
             val activePaint = if (value == selected) selectedPaint else paint
@@ -393,16 +408,20 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawLabels(
     }
 }
 
-private fun pointToOneBasedValue(
+private fun pointToDialValue(
     point: Offset,
     width: Float,
     height: Float,
     count: Int,
+    valueOffset: Int,
 ): Int {
     val center = Offset(width / 2f, height / 2f)
     val angle = pointToClockAngleDegrees(point, center)
-    val value = (angle / 360f * count).roundToInt().floorMod(count)
-    return if (value == 0) count else value
+    val index = (angle / 360f * count).roundToInt().floorMod(count)
+    if (valueOffset == 1) {
+        return if (index == 0) count else index
+    }
+    return valueOffset + index
 }
 
 private fun moveDialValue(
@@ -420,7 +439,7 @@ private fun moveDialValue(
 }
 
 private fun valueToClockFaceAngle(value: Int, count: Int): Float {
-    return value.coerceIn(1, count) * 360f / count
+    return value.floorMod(count) * 360f / count
 }
 
 private fun shouldShowDialLabel(value: Int, count: Int, labelStep: Int): Boolean {

@@ -2,6 +2,7 @@ package com.example.schoolclockgame.presentation.clock
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,10 +11,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -66,9 +69,9 @@ fun ClockLearningScreen(
         onHourValueSelected = viewModel::setHourValue,
         onMinuteValueSelected = viewModel::setMinuteValue,
         onSecondValueSelected = viewModel::setSecondValue,
-        onHourSelected = viewModel::setHourFromOneBasedDial,
-        onMinuteSelected = viewModel::setMinuteFromOneBasedDial,
-        onSecondSelected = viewModel::setSecondFromOneBasedDial,
+        onHourSelected = viewModel::setHourFromDial,
+        onMinuteSelected = viewModel::setMinuteFromDial,
+        onSecondSelected = viewModel::setSecondFromDial,
     )
 }
 
@@ -334,7 +337,7 @@ private fun DigitalUnit(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 8.dp, horizontal = 6.dp),
+                .padding(vertical = 4.dp, horizontal = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
         ) {
@@ -397,30 +400,56 @@ private fun AmountPad(
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DigitalStepButton(text = "-", onClick = { onMove(-amount) }, enabled = amount > 0)
-            OutlinedTextField(
+            DigitalStepButton(
+                text = "-",
+                onClick = { onMove(-amount) },
+                enabled = amount > 0,
+                modifier = Modifier.size(40.dp),
+            )
+            BasicTextField(
                 value = amountText,
                 onValueChange = { next ->
                     onAmountTextChange(next.filter { it.isDigit() }.take(6))
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .height(50.dp),
+                    .widthIn(min = 74.dp)
+                    .height(52.dp)
+                    .border(
+                        width = 1.5.dp,
+                        color = Color(0xFF4F5A6B),
+                        shape = RoundedCornerShape(6.dp),
+                    )
+                    .padding(horizontal = 2.dp, vertical = 0.dp),
                 singleLine = true,
                 textStyle = androidx.compose.ui.text.TextStyle(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Black,
                     textAlign = TextAlign.Center,
+                    color = Color(0xFF1F2430),
                 ),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.NumberPassword,
                     imeAction = ImeAction.Done,
                 ),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        innerTextField()
+                    }
+                },
             )
-            DigitalStepButton(text = "+", onClick = { onMove(amount) }, enabled = amount > 0)
+            DigitalStepButton(
+                text = "+",
+                onClick = { onMove(amount) },
+                enabled = amount > 0,
+                modifier = Modifier.size(40.dp),
+            )
         }
         Box(modifier = Modifier.fillMaxWidth()) {
             DigitalStepButton(
@@ -530,14 +559,13 @@ private fun DigitalStepButton(
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    IconButton(onClick = onClick, enabled = enabled, modifier = modifier) {
-        Text(
-            text = text,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Black,
-            color = if (enabled) Color(0xFF246BFD) else Color(0xFFB7BECA),
-        )
-    }
+    RepeatingTextButton(
+        text = text,
+        onPress = onClick,
+        enabled = enabled,
+        modifier = modifier,
+        fontSize = 24.sp,
+    )
 }
 
 @Composable
