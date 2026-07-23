@@ -4,6 +4,7 @@ import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,6 +55,7 @@ fun DateTimeAnalogPanel(
     onHourSelected: (Int) -> Unit,
     onMinuteSelected: (Int) -> Unit,
     onSecondSelected: (Int) -> Unit,
+    onDialFocus: (ExpandedDial) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val daysInMonth = DateMath.daysInMonth(state.year, state.month)
@@ -72,53 +74,207 @@ fun DateTimeAnalogPanel(
                 .fillMaxHeight(),
         )
         UnitDial(
+            spec = DialSpec(
+                currentValue = state.month,
+                count = 12,
+                centerText = "${state.month}がつ",
+                color = Color(0xFF18A058),
+                onValueChange = { target -> moveDialValue(state.month, 12, target, onMonthMove) },
+                onStep = onMonthMove,
+                onFocus = { onDialFocus(ExpandedDial.Month) },
+            ),
+            modifier = Modifier.weight(1f),
+        )
+        UnitDial(
+            spec = DialSpec(
+                currentValue = state.day,
+                count = daysInMonth,
+                centerText = "${state.day}にち",
+                color = Color(0xFFFFB020),
+                onValueChange = { target -> moveDialValue(state.day, daysInMonth, target, onDayMove) },
+                onStep = onDayMove,
+                onFocus = { onDialFocus(ExpandedDial.Day) },
+            ),
+            modifier = Modifier.weight(1f),
+        )
+        UnitDial(
+            spec = DialSpec(
+                currentValue = state.hours,
+                count = 24,
+                centerText = "%02dじ".format(state.hours),
+                color = Color(0xFF246BFD),
+                onValueChange = onHourSelected,
+                onStep = onHourMove,
+                valueOffset = 0,
+                onFocus = { onDialFocus(ExpandedDial.Hour) },
+            ),
+            modifier = Modifier.weight(1f),
+        )
+        UnitDial(
+            spec = DialSpec(
+                currentValue = state.minutes,
+                count = 60,
+                centerText = "%02dふん".format(state.minutes),
+                color = Color(0xFF7C3AED),
+                onValueChange = onMinuteSelected,
+                onStep = onMinuteMove,
+                labelStep = 10,
+                valueOffset = 0,
+                onFocus = { onDialFocus(ExpandedDial.Minute) },
+            ),
+            modifier = Modifier.weight(1f),
+        )
+        UnitDial(
+            spec = DialSpec(
+                currentValue = state.seconds,
+                count = 60,
+                centerText = "%02dびょう".format(state.seconds),
+                color = Color(0xFFEF4444),
+                onValueChange = onSecondSelected,
+                onStep = onSecondMove,
+                labelStep = 10,
+                valueOffset = 0,
+                onFocus = { onDialFocus(ExpandedDial.Second) },
+            ),
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+enum class ExpandedDial {
+    Month,
+    Day,
+    Hour,
+    Minute,
+    Second,
+}
+
+@Composable
+fun DateTimeDialOverlay(
+    dial: ExpandedDial,
+    state: ClockState,
+    onDismiss: () -> Unit,
+    onMonthMove: (Int) -> Unit,
+    onDayMove: (Int) -> Unit,
+    onHourMove: (Int) -> Unit,
+    onMinuteMove: (Int) -> Unit,
+    onSecondMove: (Int) -> Unit,
+    onMonthSelected: (Int) -> Unit,
+    onDaySelected: (Int) -> Unit,
+    onHourSelected: (Int) -> Unit,
+    onMinuteSelected: (Int) -> Unit,
+    onSecondSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val daysInMonth = DateMath.daysInMonth(state.year, state.month)
+    val expandedSpec = dial.spec(
+        state = state,
+        daysInMonth = daysInMonth,
+        onMonthMove = onMonthMove,
+        onDayMove = onDayMove,
+        onHourMove = onHourMove,
+        onMinuteMove = onMinuteMove,
+        onSecondMove = onSecondMove,
+        onMonthSelected = onMonthSelected,
+        onDaySelected = onDaySelected,
+        onHourSelected = onHourSelected,
+        onMinuteSelected = onMinuteSelected,
+        onSecondSelected = onSecondSelected,
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.White.copy(alpha = 0.62f))
+            .pointerInput(Unit) {
+                detectTapGestures { onDismiss() }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        UnitDial(
+            spec = expandedSpec,
+            modifier = Modifier
+                .fillMaxWidth(0.63f)
+                .fillMaxHeight(0.96f),
+            showAllLabels = true,
+            expanded = true,
+            showStepButtons = false,
+        )
+    }
+}
+
+private data class DialSpec(
+    val currentValue: Int,
+    val count: Int,
+    val centerText: String,
+    val color: Color,
+    val onValueChange: (Int) -> Unit,
+    val onStep: (Int) -> Unit,
+    val labelStep: Int = 1,
+    val valueOffset: Int = 1,
+    val onFocus: () -> Unit = {},
+)
+
+private fun ExpandedDial.spec(
+    state: ClockState,
+    daysInMonth: Int,
+    onMonthMove: (Int) -> Unit,
+    onDayMove: (Int) -> Unit,
+    onHourMove: (Int) -> Unit,
+    onMinuteMove: (Int) -> Unit,
+    onSecondMove: (Int) -> Unit,
+    onMonthSelected: (Int) -> Unit,
+    onDaySelected: (Int) -> Unit,
+    onHourSelected: (Int) -> Unit,
+    onMinuteSelected: (Int) -> Unit,
+    onSecondSelected: (Int) -> Unit,
+): DialSpec {
+    return when (this) {
+        ExpandedDial.Month -> DialSpec(
             currentValue = state.month,
             count = 12,
             centerText = "${state.month}がつ",
             color = Color(0xFF18A058),
-            onValueChange = { target -> moveDialValue(state.month, 12, target, onMonthMove) },
+            onValueChange = onMonthSelected,
             onStep = onMonthMove,
-            modifier = Modifier.weight(1f),
         )
-        UnitDial(
+
+        ExpandedDial.Day -> DialSpec(
             currentValue = state.day,
             count = daysInMonth,
             centerText = "${state.day}にち",
             color = Color(0xFFFFB020),
-            onValueChange = { target -> moveDialValue(state.day, daysInMonth, target, onDayMove) },
+            onValueChange = onDaySelected,
             onStep = onDayMove,
-            modifier = Modifier.weight(1f),
         )
-        UnitDial(
+
+        ExpandedDial.Hour -> DialSpec(
             currentValue = state.hours,
             count = 24,
             centerText = "%02dじ".format(state.hours),
             color = Color(0xFF246BFD),
             onValueChange = onHourSelected,
             onStep = onHourMove,
-            modifier = Modifier.weight(1f),
             valueOffset = 0,
         )
-        UnitDial(
+
+        ExpandedDial.Minute -> DialSpec(
             currentValue = state.minutes,
             count = 60,
             centerText = "%02dふん".format(state.minutes),
             color = Color(0xFF7C3AED),
             onValueChange = onMinuteSelected,
             onStep = onMinuteMove,
-            modifier = Modifier.weight(1f),
-            labelStep = 10,
             valueOffset = 0,
         )
-        UnitDial(
+
+        ExpandedDial.Second -> DialSpec(
             currentValue = state.seconds,
             count = 60,
             centerText = "%02dびょう".format(state.seconds),
             color = Color(0xFFEF4444),
             onValueChange = onSecondSelected,
             onStep = onSecondMove,
-            modifier = Modifier.weight(1f),
-            labelStep = 10,
             valueOffset = 0,
         )
     }
@@ -190,15 +346,11 @@ private fun YearSelectorText(
 
 @Composable
 private fun UnitDial(
-    currentValue: Int,
-    count: Int,
-    centerText: String,
-    color: Color,
-    onValueChange: (Int) -> Unit,
-    onStep: (Int) -> Unit,
+    spec: DialSpec,
     modifier: Modifier = Modifier,
-    labelStep: Int = 1,
-    valueOffset: Int = 1,
+    showAllLabels: Boolean = false,
+    expanded: Boolean = false,
+    showStepButtons: Boolean = true,
 ) {
     Surface(
         modifier = modifier.fillMaxHeight(),
@@ -211,7 +363,9 @@ private fun UnitDial(
                 .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            AnalogStepButton(text = "▲", onClick = { onStep(1) })
+            if (showStepButtons) {
+                AnalogStepButton(text = "▲", onClick = { spec.onStep(1) })
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -222,27 +376,43 @@ private fun UnitDial(
                     modifier = Modifier
                         .fillMaxHeight()
                         .aspectRatio(1f)
-                        .pointerInput(count) {
-                            detectDragGestures(
-                                onDragStart = { offset ->
-                                    onValueChange(
+                        .pointerInput(spec.count, spec.valueOffset, expanded) {
+                            detectTapGestures { offset ->
+                                spec.onFocus()
+                                if (expanded) {
+                                    spec.onValueChange(
                                         pointToDialValue(
                                             offset,
                                             size.width.toFloat(),
                                             size.height.toFloat(),
-                                            count,
-                                            valueOffset,
+                                            spec.count,
+                                            spec.valueOffset,
+                                        ),
+                                    )
+                                }
+                            }
+                        }
+                        .pointerInput(spec.count, spec.valueOffset) {
+                            detectDragGestures(
+                                onDragStart = { offset ->
+                                    spec.onValueChange(
+                                        pointToDialValue(
+                                            offset,
+                                            size.width.toFloat(),
+                                            size.height.toFloat(),
+                                            spec.count,
+                                            spec.valueOffset,
                                         ),
                                     )
                                 },
                                 onDrag = { change, _ ->
-                                    onValueChange(
+                                    spec.onValueChange(
                                         pointToDialValue(
                                             change.position,
                                             size.width.toFloat(),
                                             size.height.toFloat(),
-                                            count,
-                                            valueOffset,
+                                            spec.count,
+                                            spec.valueOffset,
                                         ),
                                     )
                                     change.consume()
@@ -252,12 +422,12 @@ private fun UnitDial(
                 ) {
                     val radius = min(size.width, size.height) * 0.43f
                     val center = Offset(size.width / 2f, size.height / 2f)
-                    val selected = currentValue.coerceIn(valueOffset, valueOffset + count - 1)
-                    val sweep = selected.toFloat() / count.toFloat() * 360f
+                    val selected = spec.currentValue.coerceIn(spec.valueOffset, spec.valueOffset + spec.count - 1)
+                    val sweep = selected.toFloat() / spec.count.toFloat() * 360f
 
                     drawCircle(Color(0xFFF7F8FB), radius, center)
                     drawArc(
-                        color = color.copy(alpha = 0.2f),
+                        color = spec.color.copy(alpha = 0.2f),
                         startAngle = -90f,
                         sweepAngle = sweep,
                         useCenter = true,
@@ -266,10 +436,10 @@ private fun UnitDial(
                     )
                     drawCircle(Color(0xFF2F3645), radius, center, style = Stroke(width = radius * 0.025f))
 
-                    repeat(count) { index ->
-                        val value = valueOffset + index
-                        val isLabeled = shouldShowDialLabel(value, count, labelStep)
-                        val angle = valueToClockFaceAngle(value, count)
+                    repeat(spec.count) { index ->
+                        val value = spec.valueOffset + index
+                        val isLabeled = showAllLabels || shouldShowDialLabel(value, spec.count, spec.labelStep)
+                        val angle = valueToClockFaceAngle(value, spec.count)
                         val startRadius = if (isLabeled) radius * 0.84f else radius * 0.91f
                         drawLine(
                             color = if (isLabeled) Color(0xFF1F2430) else Color(0xFFB7BECA),
@@ -280,34 +450,37 @@ private fun UnitDial(
                         )
                     }
 
-                    val handAngle = valueToClockFaceAngle(selected, count)
+                    drawLabels(
+                        center = center,
+                        radius = radius,
+                        count = spec.count,
+                        labelStep = spec.labelStep,
+                        selected = selected,
+                        valueOffset = spec.valueOffset,
+                        showAllLabels = showAllLabels,
+                    )
+
+                    val handAngle = valueToClockFaceAngle(selected, spec.count)
                     drawLine(
-                        color = color,
+                        color = spec.color,
                         start = center,
                         end = pointOnCircle(center, radius * 0.68f, handAngle),
                         strokeWidth = radius * 0.038f,
                         cap = StrokeCap.Round,
                     )
-                    drawCircle(color, radius * 0.055f, center)
-
-                    drawLabels(
-                        center = center,
-                        radius = radius,
-                        count = count,
-                        labelStep = labelStep,
-                        selected = selected,
-                        valueOffset = valueOffset,
-                    )
+                    drawCircle(spec.color, radius * 0.055f, center)
                 }
 
                 Text(
-                    text = centerText,
-                    fontSize = 17.sp,
+                    text = spec.centerText,
+                    fontSize = if (expanded) 26.sp else 17.sp,
                     fontWeight = FontWeight.Black,
                     color = Color(0xFF1F2430),
                 )
             }
-            AnalogStepButton(text = "▼", onClick = { onStep(-1) })
+            if (showStepButtons) {
+                AnalogStepButton(text = "▼", onClick = { spec.onStep(-1) })
+            }
         }
     }
 }
@@ -382,11 +555,16 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawLabels(
     labelStep: Int,
     selected: Int,
     valueOffset: Int,
+    showAllLabels: Boolean,
 ) {
     val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.rgb(31, 36, 48)
         textAlign = Paint.Align.CENTER
-        textSize = if (count > 31) radius * 0.072f else radius * 0.105f
+        textSize = when {
+            count > 31 && showAllLabels -> radius * 0.052f
+            count > 31 -> radius * 0.072f
+            else -> radius * 0.105f
+        }
         typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
     }
     val selectedPaint = Paint(paint).apply {
@@ -395,7 +573,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawLabels(
     }
     repeat(count) { index ->
         val value = valueOffset + index
-        if (shouldShowDialLabel(value, count, labelStep) || value == selected) {
+        if (showAllLabels || shouldShowDialLabel(value, count, labelStep) || value == selected) {
             val point = pointOnCircle(center, radius * 0.72f, valueToClockFaceAngle(value, count))
             val activePaint = if (value == selected) selectedPaint else paint
             drawContext.canvas.nativeCanvas.drawText(

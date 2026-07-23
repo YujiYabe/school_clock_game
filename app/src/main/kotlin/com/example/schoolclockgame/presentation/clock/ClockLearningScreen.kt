@@ -99,6 +99,7 @@ fun ClockLearningContent(
 ) {
     val context = rememberTimeContext(state.hours)
     val background = Color(0xFFF4F8F2)
+    var expandedDial by remember { mutableStateOf<ExpandedDial?>(null) }
 
     Scaffold(
         modifier = modifier
@@ -122,49 +123,81 @@ fun ClockLearningContent(
                     .height(50.dp),
             )
 
-            DigitalDateTimeRow(
-                state = state,
-                icon = context.icon,
-                onYearMove = onYearMove,
-                onMonthMove = onMonthMove,
-                onDayMove = onDayMove,
-                onHourMove = onHourMove,
-                onMinuteMove = onMinuteMove,
-                onSecondMove = onSecondMove,
-                onYearSelected = onYearSelected,
-                onMonthSelected = onMonthSelected,
-                onDaySelected = onDaySelected,
-                onHourValueSelected = onHourValueSelected,
-                onMinuteValueSelected = onMinuteValueSelected,
-                onSecondValueSelected = onSecondValueSelected,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    DigitalDateTimeRow(
+                        state = state,
+                        icon = context.icon,
+                        onYearMove = onYearMove,
+                        onMonthMove = onMonthMove,
+                        onDayMove = onDayMove,
+                        onHourMove = onHourMove,
+                        onMinuteMove = onMinuteMove,
+                        onSecondMove = onSecondMove,
+                        onYearSelected = onYearSelected,
+                        onMonthSelected = onMonthSelected,
+                        onDaySelected = onDaySelected,
+                        onHourValueSelected = onHourValueSelected,
+                        onMinuteValueSelected = onMinuteValueSelected,
+                        onSecondValueSelected = onSecondValueSelected,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    )
 
-            UnitLabelRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-            )
+                    UnitLabelRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                    )
 
-            DateTimeAnalogPanel(
-                state = state,
-                onYearMove = onYearMove,
-                onMonthMove = onMonthMove,
-                onDayMove = onDayMove,
-                onHourMove = onHourMove,
-                onMinuteMove = onMinuteMove,
-                onSecondMove = onSecondMove,
-                onMonthSelected = onMonthSelected,
-                onDaySelected = onDaySelected,
-                onHourSelected = onHourSelected,
-                onMinuteSelected = onMinuteSelected,
-                onSecondSelected = onSecondSelected,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-            )
+                    DateTimeAnalogPanel(
+                        state = state,
+                        onYearMove = onYearMove,
+                        onMonthMove = onMonthMove,
+                        onDayMove = onDayMove,
+                        onHourMove = onHourMove,
+                        onMinuteMove = onMinuteMove,
+                        onSecondMove = onSecondMove,
+                        onMonthSelected = onMonthSelected,
+                        onDaySelected = onDaySelected,
+                        onHourSelected = onHourSelected,
+                        onMinuteSelected = onMinuteSelected,
+                        onSecondSelected = onSecondSelected,
+                        onDialFocus = { expandedDial = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    )
+                }
+
+                expandedDial?.let { dial ->
+                    DateTimeDialOverlay(
+                        dial = dial,
+                        state = state,
+                        onDismiss = { expandedDial = null },
+                        onMonthMove = onMonthMove,
+                        onDayMove = onDayMove,
+                        onHourMove = onHourMove,
+                        onMinuteMove = onMinuteMove,
+                        onSecondMove = onSecondMove,
+                        onMonthSelected = onMonthSelected,
+                        onDaySelected = onDaySelected,
+                        onHourSelected = onHourSelected,
+                        onMinuteSelected = onMinuteSelected,
+                        onSecondSelected = onSecondSelected,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
         }
     }
 }
